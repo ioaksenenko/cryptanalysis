@@ -1,9 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <windows.h>
-#include <locale.h>
-#include <wchar.h>
-#include <wctype.h>
 
 
 typedef struct {
@@ -27,7 +24,7 @@ typedef struct {
 
 typedef struct {
 	words_t words; // массив слов
-	int length; // длина слова
+	int length; // длина слова или количество ещё нерасшифрованных букв
 } group_t;
 
 
@@ -185,7 +182,7 @@ letter_t* sort(letter_t* letters) {
 
 // Функция установки букв текста, соответствующих алфавиту по вероятностям
 // Функция изменяет входной аргумент letters
-void set_corresponds(text_t text, letter_t* letters) {
+void set_corresponds(letter_t* letters) {
 	letter_t* sorted_letters = sort(letters);
 	for (int i = 0; i < 32; i++) {
 		letters[i].correspond = sorted_letters[i].letter;
@@ -197,7 +194,7 @@ void set_corresponds(text_t text, letter_t* letters) {
 // Нужна для токенизации, чтобы не выделять лишнюю память
 int get_words_number(text_t text) {
 	int res = 0;
-	for (int i = 0; i < text.length; i++) {
+	for (int i = 1; i < text.length; i++) {
 		if (text.text[i] == ' ' && text.text[i - 1] != ' ') {
 			res++;
 		}
@@ -264,8 +261,7 @@ groups_t group_words(words_t words, char* by) {
 			res.groups[group_index].words.words[res.groups[group_index].words.count].length = words.words[i].length;
 			res.groups[group_index].words.words[res.groups[group_index].words.count].encoded_count = words.words[i].encoded_count;
 			res.groups[group_index].words.count++;
-		}
-		else {
+		} else {
 			res.groups[res.count] = (group_t){
 				.words = (words_t){
 					.words = (word_t*)malloc(words.count * sizeof(word_t)),
@@ -294,7 +290,7 @@ text_t decode(text_t text, letter_t* letters) {
 	// устанавливаем частоты и вероятности
 	set_frequencies(without_spaces, letters);
 	// устанавливаем соответствие букв алфавита и текста
-	set_corresponds(without_spaces, letters);
+	set_corresponds(letters);
 	// разбиваем текст на слова
 	words_t words = tokenize(without_stop_symbols);
 	// группируем слова по длине
@@ -314,8 +310,8 @@ text_t decode(text_t text, letter_t* letters) {
 		history[i].text[text.length] = '\0';
 	}
 
-	char input_letter;
-	char correspond_letter;
+	char input_letter = ' ';
+	char correspond_letter = ' ';
 	int option;
 	do {
 		printf("Выберите опцию:\n1. Показать предполагаемые замены в соответствии с частотами распределения букв русского алфавита.\n2. Показать все слова, сгруппированные по количеству букв.\n3. Показать все слова, сгруппированные по количеству нерасшифрованных на данный момент букв.\n4. Показать криптограмму с указанием расшифрованного на данный момент текста.\n5. Заменить букву в криптограмме.\n6. Декодировать букву в соответствии с частотами.\n7. Декодировать весь текст.\n8. Откатить изменения до предыдущей версии.\n9. Откатить букву.\n0. Выйти.\n\n");
